@@ -15,40 +15,68 @@ firebase.analytics();
 var db = firebase.database();
 var connectionsRef = db.ref("/connections");
 var connectedRef = db.ref(".info/connected");
+var usersRef = db.ref("/users");
 
-var players = {
-  player1: {
-    connected: false,
-    move: null
-  },
+var playerData = {
+  connected: false,
+  choice: null,
+  key: null,
+}
 
-  player2: {
-    connected: false,
-    move: null
-  }
+var chooseWeapon = (string) => {
+  playerData.choice = string;
+  console.log("PlayerData:", playerData);
 }
 
 connectedRef.on("value", (snap) => {
   if(snap.val()) {
     var connection = connectionsRef.push(true);
-    if(players.player1.connected) {
-      players.player2.connected = true;
-    } else if(!players.player1.connected){
-      players.player1.connected = true;
-    }
     connection.onDisconnect().remove();
-    console.log(players);
+    var conKey = connection.getKey();
+
+    playerData.connected = true;
+    playerData.key = conKey;
+
+    usersRef.once('value', (snap) => {
+
+      if(snap.hasChild("player1")) {
+        console.log("player 1 exists");
+        usersRef.update({
+          player2: playerData
+        })
+        usersRef.child("player2").onDisconnect().remove();
+      } else if(!snap.hasChild("player1")) {
+        console.log("player 1 does not exist");
+        usersRef.update({
+          player1: playerData
+        })
+        usersRef.child("player1").onDisconnect().remove();
+      }
+    })
   }
 });
 
+usersRef.on("value", (snap) => {
+  console.log("usersRef snap:", snap);
+  var key = Object.keys(snap.val())[0];
+  console.log(`${key} has connected!`);
+  // console.log(snap.val());
+
+});
+
 connectionsRef.on("value", (snap) => {
-  console.log('connectionsRef snap', snap);
-  console.log("Number of connections:", snap.numChildren());
   $(".connected-players").text(snap.numChildren());
 });
 
 db.ref().on("value", (snap) => {
-  console.log("Snapshot:", snap);
+  // console.log("Snapshot:", snap);
 }, (errorObj) => {
   console.log("Read failed:", errorObj.code);
 });
+
+$(".weapon").click(() => {
+  var btnVal = $(this).attr("value");
+  console.log(`buttonVal: ${btnVal}`);
+});
+
+// chooseWeapon("rock");
