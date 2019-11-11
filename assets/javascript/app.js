@@ -16,10 +16,28 @@ var db = firebase.database();
 var connectionsRef = db.ref("/connections");
 var connectedRef = db.ref(".info/connected");
 
+var players = {
+  player1: {
+    connected: false,
+    move: null
+  },
+
+  player2: {
+    connected: false,
+    move: null
+  }
+}
+
 connectedRef.on("value", (snap) => {
   if(snap.val()) {
-    var con = connectionsRef.push(true);
-    con.onDisconnect().remove();
+    var connection = connectionsRef.push(true);
+    if(players.player1.connected) {
+      players.player2.connected = true;
+    } else if(!players.player1.connected){
+      players.player1.connected = true;
+    }
+    connection.onDisconnect().remove();
+    console.log(players);
   }
 });
 
@@ -28,16 +46,6 @@ connectionsRef.on("value", (snap) => {
   console.log("Number of connections:", snap.numChildren());
   $(".connected-players").text(snap.numChildren());
 });
-
-var player1 = {
-  connected: false,
-  move: null,
-}
-
-var player2 = {
-  connected: false,
-  move: null,
-}
 
 db.ref().on("value", (snap) => {
   console.log("Snapshot:", snap);
